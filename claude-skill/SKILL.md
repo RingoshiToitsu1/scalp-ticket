@@ -15,19 +15,21 @@ stated); any others are higher-timeframe context on the same instrument.
 **Never invent a price the axis does not support.** If the axis is illegible, say so in one
 line and stop — that costs nothing; a confident wrong level costs money.
 
-## The read — think it, don't write it
+## The read — one pass, no alternatives
 
-Do all of this silently, then emit only the ticket:
+Deliberation is the latency. Take the FIRST answer this procedure gives and run the
+command. Do not price a second candidate, do not compare a long against a short, do not
+try three stop placements and pick the best — that weighing is what costs ten seconds.
 
-1. **Axis** — ticker, last price, the gridline increment, the visible high and low.
-2. **Structure** — HH/HL, LH/LL or range; the most recent break and the price it broke at;
-   equal highs/lows as resting liquidity; where a fast one-sided leg left thin structure.
-3. **Volatility** — average candle range over the visible candles. Every stop distance is
-   structure plus a buffer sized from that number, never a round guess.
-4. **The trade** — only where risk is defined and the next opposing liquidity is ≥1.5× that
-   risk away. Otherwise `--bias no-trade` with one line on what you are waiting for.
-   Entry sits at a *location* (a level), not wherever price happens to be printing.
-5. **Arithmetic** — for a long, stop < entry < TP1; for a short, stop > entry > TP1.
+1. **Direction** — the last break of structure. Lower highs and lower lows: short only.
+   Higher highs and higher lows: long only. Neither: `--bias no-trade`, done.
+2. **Entry** — the nearest untested level *against* the current push, in that direction: the
+   broken shelf or round number price is retracing into. Not where price is printing now.
+3. **Stop** — beyond the swing that defines the level, plus half an average candle.
+4. **TP1** — the nearest opposing liquidity (last swing low for a short, swing high for a
+   long). **TP2** — the prior extreme.
+5. **Check** — rr = |TP1 − entry| / |entry − stop|. Under 1.5, it is `--bias no-trade`.
+   Do not go hunting for a better version of the trade; the chart did not offer one.
 
 ## Emit — one Bash call, nothing before it, nothing after it
 
@@ -57,8 +59,10 @@ costs time for nothing.
 `--terse` adds R:R, the setup line and the invalidation. `--full` is the whole write-up.
 Use neither unless the user asks.
 
-**The script's output is the entire answer. Write nothing after it.** If the checker flags
-a contradiction, that is a real error in your read: fix the levels and re-run.
+**The script's output is the entire answer. Write nothing after it** — not a summary, not a
+repeat of the levels, not "here's the read". The user already sees the command's output;
+anything you type after it is pure latency. If the checker flags a contradiction, that is a
+real error in your read: fix the levels and re-run.
 
 ## Full write-up — only when asked
 
