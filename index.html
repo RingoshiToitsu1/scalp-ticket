@@ -1,0 +1,783 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Scalp Ticket</title>
+<meta name="robots" content="noindex,nofollow">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+:root{
+  color-scheme: dark;
+  --bg:#0B0E13; --panel:#131923; --raise:#1A222E; --line:#27323F; --line-soft:#1F2833;
+  --ink:#E6EDF5; --mut:#8FA0B3; --faint:#5B6B7C;
+  --long:#25C08B; --short:#FF5C4D; --wait:#E8A33D; --steel:#5C9BE0;
+  --sans:'Archivo',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --mono:'IBM Plex Mono',ui-monospace,'SF Mono',Menlo,monospace;
+  --r:12px;
+}
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--bg); color:var(--ink); font-family:var(--sans);
+  font-size:15px; line-height:1.5; -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:1180px; margin:0 auto; padding-block:22px 64px; padding-left:18px; padding-right:18px}
+
+/* ---- header ---- */
+.top{display:flex; align-items:flex-end; gap:16px; flex-wrap:wrap; margin-bottom:22px}
+.brand{display:flex; flex-direction:column; gap:3px; margin-right:auto}
+.brand h1{margin:0; font-size:23px; font-weight:700; letter-spacing:-.015em; line-height:1.1}
+.brand p{margin:0; color:var(--mut); font-size:13.5px; max-width:60ch}
+.status{display:inline-flex; align-items:center; gap:8px; font-family:var(--mono); font-size:11.5px;
+  letter-spacing:.06em; text-transform:uppercase; color:var(--mut); background:var(--panel);
+  border:1px solid var(--line); border-radius:999px; padding:7px 13px; white-space:nowrap}
+.status .led{width:7px; height:7px; border-radius:50%; background:var(--faint); flex:0 0 auto}
+.status.ok .led{background:var(--long); box-shadow:0 0 8px rgba(37,192,139,.75)}
+.status.bad .led{background:var(--short)}
+
+/* ---- layout ---- */
+.deck{display:grid; grid-template-columns:minmax(0,370px) minmax(0,1fr); gap:18px; align-items:start}
+@media (max-width:880px){ .deck{grid-template-columns:1fr} }
+.panel{background:var(--panel); border:1px solid var(--line); border-radius:var(--r)}
+.panel + .panel{margin-top:14px}
+.phead{display:flex; align-items:center; gap:10px; padding:13px 16px; border-bottom:1px solid var(--line-soft)}
+.phead h2{margin:0; font-size:12px; font-weight:600; letter-spacing:.11em; text-transform:uppercase; color:var(--mut)}
+.phead .spacer{margin-left:auto}
+.pbody{padding:16px}
+
+/* ---- intake ---- */
+.drop{border:1.5px dashed var(--line); border-radius:10px; background:var(--raise);
+  padding:24px 16px; text-align:center; cursor:pointer; transition:border-color .15s, background .15s}
+.drop:hover,.drop:focus-visible{border-color:var(--steel); background:#1C2634; outline:none}
+.drop.hot{border-color:var(--steel); background:#1C2634}
+.drop .big{font-size:14.5px; font-weight:600}
+.drop .sml{color:var(--faint); font-size:12.5px; margin-top:5px; font-family:var(--mono)}
+.shots{display:flex; gap:9px; flex-wrap:wrap; margin-top:12px}
+.shot{position:relative; width:94px; height:64px; border-radius:8px; overflow:hidden; border:1px solid var(--line)}
+.shot img{width:100%; height:100%; object-fit:cover; display:block}
+.shot .tag{position:absolute; left:0; bottom:0; background:rgba(11,14,19,.86); color:var(--mut);
+  font-family:var(--mono); font-size:9.5px; letter-spacing:.05em; padding:2px 6px; border-top-right-radius:6px}
+.shot button{position:absolute; top:3px; right:3px; width:19px; height:19px; border-radius:50%;
+  border:none; background:rgba(11,14,19,.86); color:var(--ink); font-size:12px; line-height:1; cursor:pointer}
+.fields{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:14px}
+.field{display:flex; flex-direction:column; gap:5px; min-width:0}
+.field.wide{grid-column:1 / -1}
+.field label{font-size:11px; font-weight:600; letter-spacing:.09em; text-transform:uppercase; color:var(--faint)}
+.field input{background:var(--bg); border:1px solid var(--line); border-radius:8px; padding:9px 11px;
+  color:var(--ink); font-family:var(--mono); font-size:13.5px; min-width:0}
+.field input:focus{outline:none; border-color:var(--steel); box-shadow:0 0 0 3px rgba(92,155,224,.16)}
+.field .hint{font-size:11.5px; color:var(--faint)}
+.run{display:flex; gap:9px; margin-top:15px}
+.runhint{margin-top:8px; font-size:12px; color:var(--faint); min-height:1em}
+button.go{flex:1; background:var(--steel); color:#08121D; border:none; border-radius:9px; padding:12px 16px;
+  font-family:var(--sans); font-size:14.5px; font-weight:700; cursor:pointer; transition:filter .15s}
+button.go:hover:not(:disabled){filter:brightness(1.08)}
+button.go:disabled{opacity:.42; cursor:not-allowed}
+button.ghost{background:none; border:1px solid var(--line); color:var(--mut); border-radius:9px;
+  padding:12px 15px; font-family:var(--sans); font-size:13.5px; font-weight:600; cursor:pointer}
+button.ghost:hover{color:var(--ink); border-color:var(--faint)}
+:focus-visible{outline:2px solid var(--steel); outline-offset:2px}
+
+/* ---- ticket ---- */
+.band{display:flex; align-items:center; gap:14px; flex-wrap:wrap; padding:16px;
+  border-bottom:1px solid var(--line-soft); border-radius:var(--r) var(--r) 0 0}
+.band.long{background:linear-gradient(100deg,rgba(37,192,139,.16),rgba(37,192,139,.03))}
+.band.short{background:linear-gradient(100deg,rgba(255,92,77,.16),rgba(255,92,77,.03))}
+.band.wait{background:linear-gradient(100deg,rgba(232,163,61,.14),rgba(232,163,61,.03))}
+.bias{font-family:var(--mono); font-size:27px; font-weight:600; letter-spacing:.03em; line-height:1}
+.band.long .bias{color:var(--long)} .band.short .bias{color:var(--short)} .band.wait .bias{color:var(--wait)}
+.band .meta{display:flex; flex-direction:column; gap:2px; margin-right:auto; min-width:0}
+.band .setup{font-size:14.5px; font-weight:600}
+.band .instr{font-family:var(--mono); font-size:12px; color:var(--mut); letter-spacing:.03em}
+.conv{text-align:right; font-family:var(--mono)}
+.conv .n{font-size:20px; font-weight:600}
+.conv .l{font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:var(--faint)}
+.levels{display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:1px; background:var(--line-soft)}
+.lvl{background:var(--panel); padding:14px 16px; min-width:0}
+.lvl .k{font-family:var(--mono); font-size:10px; letter-spacing:.11em; text-transform:uppercase; color:var(--faint)}
+.lvl .v{font-family:var(--mono); font-size:21px; font-weight:600; margin-top:3px; font-variant-numeric:tabular-nums; word-break:break-word}
+.lvl .s{font-size:12px; color:var(--mut); margin-top:3px; line-height:1.45}
+.lvl.entry .v{color:var(--ink)} .lvl.stop .v{color:var(--short)} .lvl.tp .v{color:var(--long)}
+.math{display:flex; flex-wrap:wrap; gap:8px; padding:14px 16px; border-top:1px solid var(--line-soft)}
+.chip{display:inline-flex; align-items:center; gap:7px; background:var(--raise); border:1px solid var(--line);
+  border-radius:999px; padding:6px 12px; font-family:var(--mono); font-size:12px; color:var(--mut)}
+.chip b{color:var(--ink); font-weight:600}
+.chip.warn{border-color:rgba(232,163,61,.5); background:rgba(232,163,61,.1); color:#F0C47C}
+.chip.warn b{color:#FFD79A}
+.chip.bad{border-color:rgba(255,92,77,.55); background:rgba(255,92,77,.1); color:#FFA79E}
+.chip.bad b{color:#FFC9C2}
+.notes{padding:4px 16px 16px}
+.note-sec{padding-top:14px}
+.note-sec h3{margin:0 0 7px; font-size:11px; font-weight:600; letter-spacing:.11em; text-transform:uppercase; color:var(--faint)}
+.note-sec ul{margin:0; padding-left:17px; display:flex; flex-direction:column; gap:5px}
+.note-sec li{font-size:13.5px; color:#CBD6E2; line-height:1.5}
+.note-sec li b{color:var(--ink); font-weight:600}
+.keylvl{display:flex; flex-wrap:wrap; gap:7px}
+.keylvl span{font-family:var(--mono); font-size:12px; background:var(--raise); border:1px solid var(--line);
+  border-radius:7px; padding:5px 10px; color:var(--mut)}
+.keylvl span b{color:var(--ink); font-weight:500}
+.example-tag{display:inline-flex; align-items:center; gap:7px; font-family:var(--mono); font-size:11px;
+  letter-spacing:.08em; text-transform:uppercase; color:var(--wait); background:rgba(232,163,61,.1);
+  border:1px solid rgba(232,163,61,.4); border-radius:999px; padding:5px 11px}
+
+/* ---- working / errors ---- */
+.working{display:flex; align-items:center; gap:12px; padding:16px; color:var(--mut); font-size:13.5px}
+.spin{width:15px; height:15px; border-radius:50%; border:2px solid var(--line); border-top-color:var(--steel);
+  animation:sp .8s linear infinite; flex:0 0 auto}
+@keyframes sp{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){ .spin{animation:none} }
+.stream{margin:0 16px 16px; max-height:180px; overflow:auto; background:var(--bg); border:1px solid var(--line-soft);
+  border-radius:8px; padding:11px 13px; font-family:var(--mono); font-size:11.5px; color:var(--faint);
+  white-space:pre-wrap; word-break:break-word}
+.err{margin:16px; padding:13px 15px; border-radius:9px; border:1px solid rgba(255,92,77,.45);
+  background:rgba(255,92,77,.08); color:#FFB7AF; font-size:13.5px}
+.err b{color:#FFD5D0}
+
+/* ---- history ---- */
+.hist{display:flex; flex-direction:column; gap:1px; background:var(--line-soft)}
+.hist button{display:flex; align-items:center; gap:10px; width:100%; text-align:left; background:var(--panel);
+  border:none; padding:11px 16px; cursor:pointer; font-family:var(--mono); font-size:12px; color:var(--mut)}
+.hist button:hover{background:var(--raise); color:var(--ink)}
+.hist .dot{width:6px; height:6px; border-radius:50%; flex:0 0 auto}
+.hist .sym{color:var(--ink); font-weight:500}
+.hist .when{margin-left:auto; color:var(--faint); font-size:11px}
+.empty{padding:15px 16px; color:var(--faint); font-size:12.5px}
+.foot{margin-top:22px; color:var(--faint); font-size:12px; line-height:1.65; max-width:78ch}
+.foot b{color:var(--mut); font-weight:600}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <header class="top">
+    <div class="brand">
+      <h1>Scalp Ticket</h1>
+      <p>Drop a 1-minute chart. Get a bias, an entry, a stop, targets and the structure read behind them — with the arithmetic checked on this page, not taken on trust.</p>
+    </div>
+    <div class="status" id="status"><span class="led"></span><span id="statusText">No key</span></div>
+  </header>
+
+  <div class="deck">
+
+    <!-- INTAKE -->
+    <div>
+      <section class="panel" id="keyPanel">
+        <div class="phead"><h2>API key</h2><span class="spacer"></span>
+          <button class="ghost" id="forgetKey" style="padding:4px 10px;font-size:11.5px" hidden>Forget</button></div>
+        <div class="pbody">
+          <div class="field">
+            <label for="fKey">Anthropic API key</label>
+            <input id="fKey" type="password" placeholder="sk-ant-…" autocomplete="off" spellcheck="false">
+            <span class="hint">Kept in this browser only (localStorage) and sent to api.anthropic.com and nowhere else. It is never in the repo. Get one at console.anthropic.com.</span>
+          </div>
+          <div class="run"><button class="go" id="saveKey">Save key</button></div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="phead"><h2>Chart</h2><span class="spacer"></span>
+          <span id="shotCount" style="font-family:var(--mono);font-size:11px;color:var(--faint)"></span>
+          <button class="ghost" id="copyPrompt" style="padding:4px 10px;font-size:11.5px" title="Copy the analysis prompt to use in a Claude chat by hand">Copy prompt</button></div>
+        <div class="pbody">
+          <div class="drop" id="drop" tabindex="0" role="button" aria-label="Add a chart screenshot">
+            <div class="big">Drop a screenshot, paste, or click</div>
+            <div class="sml" id="dropHint">PNG · JPG · ⌘V / Ctrl+V works anywhere</div>
+          </div>
+          <div class="shots" id="shots"></div>
+
+          <div class="fields">
+            <div class="field">
+              <label for="fInstrument">Instrument</label>
+              <input id="fInstrument" type="text" placeholder="read from chart" autocomplete="off">
+            </div>
+            <div class="field">
+              <label for="fRisk">Risk per trade</label>
+              <input id="fRisk" type="text" inputmode="decimal" placeholder="$ optional" autocomplete="off">
+            </div>
+            <div class="field wide">
+              <label for="fNote">Anything it can't see</label>
+              <input id="fNote" type="text" placeholder="e.g. NY open, CPI in 10 min, already long from 5742" autocomplete="off">
+              <span class="hint">Optional. Session, news, an existing position — context that isn't printed on the chart.</span>
+            </div>
+          </div>
+
+          <div class="run">
+            <button class="go" id="run" disabled>Read the chart</button>
+            <button class="ghost" id="stop" hidden>Stop</button>
+          </div>
+          <div class="runhint" id="runHint">Add a screenshot first.</div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="phead"><h2>Recent reads</h2><span class="spacer"></span>
+          <button class="ghost" id="clearHist" style="padding:4px 10px;font-size:11.5px" hidden>Clear</button></div>
+        <div id="hist" class="hist"></div>
+      </section>
+    </div>
+
+    <!-- TICKET -->
+    <section class="panel" id="ticket" aria-live="polite"></section>
+
+  </div>
+
+  <p class="foot">
+    <b>How to read it.</b> Every number on the ticket is recomputed here from the entry, stop and targets — the risk:reward,
+    the stop distance, the position size. Where the model's own arithmetic disagrees with the page's, the page's figure is
+    shown and the disagreement is flagged. A read is one model's opinion of one screenshot: it cannot see your fills, your
+    spread, your size, or the tape between candles. <b>It is not advice, and it is not a signal service.</b>
+  </p>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  var $ = function (id) { return document.getElementById(id); };
+  var shots = [];              // {file, url}
+  var ctl = null, busy = false;
+  var HIST_KEY = 'scalp-ticket-history-v1';
+
+  /* ---------- number formatting ---------- */
+  function decimalsFor(tick, price) {
+    if (tick > 0) {
+      var s = String(tick);
+      if (s.indexOf('e-') > -1) return Math.min(8, parseInt(s.split('e-')[1], 10));
+      var dot = s.indexOf('.');
+      return dot < 0 ? 0 : s.length - dot - 1;
+    }
+    var p = Math.abs(price || 0);
+    if (p >= 1000) return 2;
+    if (p >= 10) return 2;
+    if (p >= 1) return 3;
+    if (p >= 0.01) return 5;
+    return 6;
+  }
+  function fmt(n, tick) {
+    if (!isFinite(n)) return '—';
+    var d = decimalsFor(tick, n);
+    return n.toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d });
+  }
+  function money(n) {
+    if (!isFinite(n)) return '—';
+    return '$' + Math.abs(n).toLocaleString('en-US', { maximumFractionDigits: Math.abs(n) < 100 ? 2 : 0 });
+  }
+  function num(v) { var n = typeof v === 'number' ? v : parseFloat(String(v).replace(/[^0-9.\-]/g, '')); return isFinite(n) ? n : NaN; }
+
+  /* ---------- capability wiring ---------- */
+  function setStatus(cls, text) {
+    var el = $('status'); el.className = 'status' + (cls ? ' ' + cls : ''); $('statusText').textContent = text;
+  }
+  /* ---------- the key ---------- */
+  var KEY_STORE = 'scalp-ticket-key-v1';
+  var apiKey = '';
+  function loadKey() {
+    try { apiKey = localStorage.getItem(KEY_STORE) || ''; } catch (e) { apiKey = ''; }
+    if (apiKey) { $('fKey').value = apiKey; $('forgetKey').hidden = false; $('keyPanel').open = false; }
+    setStatus(apiKey ? 'ok' : 'bad', apiKey ? 'Key saved' : 'No key');
+    syncRun();
+  }
+  $('saveKey').addEventListener('click', function () {
+    var v = $('fKey').value.trim();
+    if (!v) return;
+    apiKey = v;
+    try { localStorage.setItem(KEY_STORE, v); } catch (e) {}
+    $('forgetKey').hidden = false;
+    setStatus('ok', 'Key saved');
+    $('saveKey').textContent = 'Saved';
+    setTimeout(function () { $('saveKey').textContent = 'Save key'; }, 1500);
+    syncRun();
+  });
+  $('forgetKey').addEventListener('click', function () {
+    apiKey = ''; $('fKey').value = '';
+    try { localStorage.removeItem(KEY_STORE); } catch (e) {}
+    $('forgetKey').hidden = true; setStatus('bad', 'No key'); syncRun();
+  });
+
+  /* ---------- the model call ---------- */
+  // Raw fetch rather than the SDK: this page is one static file with no build step, and the
+  // browser call needs the direct-access header the SDK only sets in its own browser mode.
+  var API_URL = 'https://api.anthropic.com/v1/messages';
+  var MODEL = 'claude-opus-5';
+  function fileToBase64(file) {
+    return new Promise(function (res, rej) {
+      var r = new FileReader();
+      r.onload = function () { var s = String(r.result); res(s.slice(s.indexOf(',') + 1)); };
+      r.onerror = function () { rej(new Error('could not read the file')); };
+      r.readAsDataURL(file);
+    });
+  }
+  // Tolerant: the whole reply as JSON, else a fenced block, else the first {...} in it.
+  function parseJSON(text) {
+    var tries = [text];
+    var fence = text.match(/```(?:json)?\s*([\s\S]*?)```/);
+    if (fence) tries.push(fence[1]);
+    var a = text.indexOf('{'), b = text.lastIndexOf('}');
+    if (a > -1 && b > a) tries.push(text.slice(a, b + 1));
+    for (var i = 0; i < tries.length; i++) {
+      try { var v = JSON.parse(tries[i].trim()); if (v && typeof v === 'object') return v; } catch (e) {}
+    }
+    return null;
+  }
+  async function readChart(prompt, files, signal) {
+    var blocks = [];
+    for (var i = 0; i < files.length; i++) {
+      var f = files[i];
+      if (f.size > 4.5 * 1024 * 1024) throw new Error('That screenshot is over 4.5 MB — the API limit is 5 MB per image. Crop it or save it as a JPG.');
+      blocks.push({
+        type: 'image',
+        source: { type: 'base64', media_type: f.type || 'image/png', data: await fileToBase64(f) }
+      });
+    }
+    blocks.push({ type: 'text', text: prompt });
+    var res = await fetch(API_URL, {
+      method: 'POST',
+      signal: signal,
+      headers: {
+        'content-type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: MODEL,
+        max_tokens: 16000,
+        output_config: { effort: 'high' },
+        messages: [{ role: 'user', content: blocks }]
+      })
+    });
+    if (!res.ok) {
+      var detail = '';
+      try { var j = await res.json(); detail = (j && j.error && j.error.message) || ''; } catch (e) {}
+      if (res.status === 401) throw new Error('The API key was rejected. Check it at console.anthropic.com and save it again.');
+      if (res.status === 429) throw new Error('Rate limited, or the account is out of credit. ' + detail);
+      if (res.status === 400) throw new Error('The request was refused: ' + (detail || 'bad request.'));
+      throw new Error('API error ' + res.status + '. ' + detail);
+    }
+    var data = await res.json();
+    if (data.stop_reason === 'refusal') throw new Error('Claude declined to read that image.');
+    var text = (data.content || []).filter(function (b) { return b.type === 'text'; })
+      .map(function (b) { return b.text; }).join('\n').trim();
+    var parsed = parseJSON(text);
+    if (!parsed) throw new Error('The reply came back without usable JSON. Run it again; if it keeps happening the screenshot is probably too cropped to read.');
+    return parsed;
+  }
+
+  /* ---------- intake ---------- */
+  var fileInput = document.createElement('input');
+  fileInput.type = 'file'; fileInput.accept = 'image/png,image/jpeg,image/webp'; fileInput.multiple = true;
+  fileInput.id = 'fileInput'; fileInput.hidden = true;
+  document.body.appendChild(fileInput);
+
+  function maxShots() { return 4; }
+  function addFiles(list) {
+    var added = 0;
+    for (var i = 0; i < list.length; i++) {
+      var f = list[i];
+      if (!f || !/^image\//.test(f.type)) continue;
+      if (shots.length >= maxShots()) break;
+      shots.push({ file: f, url: URL.createObjectURL(f) });
+      added++;
+    }
+    if (added) renderShots();
+  }
+  function renderShots() {
+    var host = $('shots'); host.textContent = '';
+    shots.forEach(function (s, i) {
+      var d = document.createElement('div'); d.className = 'shot';
+      var img = document.createElement('img'); img.src = s.url; img.alt = i === 0 ? 'Primary chart' : 'Context chart ' + i;
+      var tag = document.createElement('span'); tag.className = 'tag'; tag.textContent = i === 0 ? 'PRIMARY' : 'CONTEXT ' + i;
+      var x = document.createElement('button'); x.type = 'button'; x.textContent = '×'; x.title = 'Remove';
+      x.addEventListener('click', function (ev) {
+        ev.stopPropagation();
+        URL.revokeObjectURL(s.url); shots.splice(i, 1); renderShots();
+      });
+      d.appendChild(img); d.appendChild(tag); d.appendChild(x); host.appendChild(d);
+    });
+    $('shotCount').textContent = shots.length ? shots.length + ' / ' + maxShots() : '';
+    syncRun();
+  }
+  function syncRun() {
+    $('run').disabled = busy || !shots.length;
+    $('runHint').textContent = shots.length ? '' : 'Add a screenshot first.';
+  }
+
+  var drop = $('drop');
+  drop.addEventListener('click', function () { fileInput.click(); });
+  drop.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fileInput.click(); } });
+  fileInput.addEventListener('change', function () { addFiles(fileInput.files); fileInput.value = ''; });
+  ['dragenter', 'dragover'].forEach(function (t) {
+    drop.addEventListener(t, function (e) { e.preventDefault(); drop.classList.add('hot'); });
+  });
+  ['dragleave', 'drop'].forEach(function (t) {
+    drop.addEventListener(t, function (e) { e.preventDefault(); drop.classList.remove('hot'); });
+  });
+  drop.addEventListener('drop', function (e) { if (e.dataTransfer && e.dataTransfer.files) addFiles(e.dataTransfer.files); });
+  document.addEventListener('paste', function (e) {
+    if (!e.clipboardData) return;
+    var items = e.clipboardData.items, files = [];
+    for (var i = 0; i < items.length; i++) if (items[i].kind === 'file') { var f = items[i].getAsFile(); if (f) files.push(f); }
+    if (files.length) { e.preventDefault(); addFiles(files); }
+  });
+
+  /* ---------- the prompt ---------- */
+  var SCHEMA = '{"readable":true,"unreadable":["string"],"chart":{"instrument":"string","timeframe":"string",'
+    + '"last_price":0,"axis_low":0,"axis_high":0,"tick":0,"avg_candle_range":0,"candles_seen":0,"session_note":"string"},'
+    + '"bias":"long|short|no-trade","setup":"string","conviction":0,'
+    + '"entry":{"type":"limit|stop|market","price":0,"trigger":"string"},'
+    + '"stop":{"price":0,"why":"string"},'
+    + '"targets":[{"label":"TP1","price":0,"why":"string"}],'
+    + '"model_rr":0,"invalidation":"string",'
+    + '"structure":["string"],"momentum":["string"],'
+    + '"key_levels":[{"price":0,"kind":"support|resistance|liquidity|range-high|range-low|vwap|round","note":"string"}],'
+    + '"risks":["string"],"raise_conviction":["string"]}';
+
+  function buildPrompt(ctx) {
+    return [
+'You are reading trading chart screenshots to produce one scalp trade ticket. Work like a disciplined desk trader:',
+'mechanical, numerate, and willing to say there is no trade. No disclaimers, no advice to consult anyone, no hedged prose.',
+'',
+'IMAGE 1 is the primary chart (' + ctx.tf + ').' + (shots.length > 1 ? ' The other image(s) are additional context on the same instrument — use them for higher-timeframe structure only.' : ''),
+ctx.instrument ? 'The trader says the instrument is: ' + ctx.instrument : 'The instrument is whatever the chart says it is.',
+ctx.note ? 'Context the chart does not show: ' + ctx.note : '',
+ctx.risk ? 'The trader risks ' + ctx.risk + ' per trade. Size the stop so that risk is sane, and state risk per unit.' : '',
+'',
+'STEP 1 - READ IT LITERALLY, BEFORE ANY OPINION.',
+'Extract only what is actually printed: ticker, timeframe, the price axis low and high, the last traded price, the price',
+'increment between axis gridlines (infer the instrument tick from it), how many candles are visible, and whether volume or',
+'any indicator is drawn. If the axis is too blurred or cropped to name real prices, set readable=false, list what is missing',
+'in unreadable[], set bias to "no-trade", and stop. NEVER invent a price that is not supported by the axis.',
+'',
+'STEP 2 - STRUCTURE. From the swings: is it higher-highs/higher-lows, lower-highs/lower-lows, or a range? Name the most',
+'recent break of structure or change of character AND the price it happened at. Mark the range boundaries if it is a range.',
+'Note equal highs or equal lows (resting liquidity), unfilled gaps or imbalances, and what the last 5-10 candles did',
+'(rejection wicks, engulfing, absorption, momentum expansion, narrowing ranges).',
+'',
+'STEP 3 - VOLATILITY. Estimate the average candle range over the visible candles, in price units (avg_candle_range).',
+'Every distance you quote later must be justified against it - a stop is structure plus a buffer sized from this number,',
+'never a round guess.',
+'',
+'STEP 4 - THE TRADE. Take one only if the chart offers a place where risk is defined and the next opposing liquidity sits at',
+'least 1.5x that risk away. Otherwise bias = "no-trade" and say what you are waiting for in invalidation.',
+'  - entry: limit at a level, stop on a break, or market. Give the exact price and what has to happen for it to fill.',
+'  - stop: the exact price BEYOND the level that invalidates the idea, plus a buffer from avg_candle_range.',
+'  - targets: TP1 at the nearest opposing liquidity or structure; TP2 at the measured move or next major level. 1-3 targets.',
+'  - Every price must sit on the instrument tick you inferred.',
+'',
+'STEP 5 - ARITHMETIC. risk = |entry - stop|. reward = |TP1 - entry|. model_rr = reward / risk, rounded to 2 decimals.',
+'For a long: stop < entry < TP1. For a short: stop > entry > TP1. Check this before you answer. If model_rr < 1.5,',
+'set bias to "no-trade" and explain what would have to change.',
+'',
+'Also give: conviction 0-100 (what a 100 would need is not this chart - be honest), risks[] (what kills this trade),',
+'raise_conviction[] (what you would want to see), and unreadable[] (anything on the chart you could not make out).',
+'',
+'Reply with ONLY this JSON object, no prose, no code fence:',
+SCHEMA,
+'Numbers must be JSON numbers, not strings. Use the instrument\'s real decimals.'
+    ].filter(Boolean).join('\n');
+  }
+
+  /* ---------- page-side verification ---------- */
+  function verify(t) {
+    var out = { issues: [], rr: NaN, risk: NaN, reward: NaN, units: NaN, riskPct: NaN };
+    var e = num(t && t.entry && t.entry.price), s = num(t && t.stop && t.stop.price);
+    var tp = (t && t.targets && t.targets.length) ? num(t.targets[0].price) : NaN;
+    if (!isFinite(e) || !isFinite(s)) return out;
+    out.risk = Math.abs(e - s);
+    if (isFinite(tp)) { out.reward = Math.abs(tp - e); out.rr = out.risk > 0 ? out.reward / out.risk : NaN; }
+    var long = t.bias === 'long', short = t.bias === 'short';
+    if (long && !(s < e)) out.issues.push('Long with the stop at or above the entry — the stop is on the wrong side.');
+    if (short && !(s > e)) out.issues.push('Short with the stop at or below the entry — the stop is on the wrong side.');
+    if (long && isFinite(tp) && !(tp > e)) out.issues.push('Long with the first target below the entry.');
+    if (short && isFinite(tp) && !(tp < e)) out.issues.push('Short with the first target above the entry.');
+    var mrr = num(t.model_rr);
+    if (isFinite(mrr) && isFinite(out.rr) && Math.abs(mrr - out.rr) > 0.15) {
+      out.issues.push('Its own risk:reward (' + mrr.toFixed(2) + ') does not match the levels it gave (' + out.rr.toFixed(2) + '). The levels win.');
+    }
+    var last = num(t.chart && t.chart.last_price);
+    if (isFinite(last) && isFinite(e) && last > 0 && Math.abs(e - last) / last > 0.05) {
+      out.issues.push('The entry sits more than 5% from the last price it read — check it read the axis correctly.');
+    }
+    if (isFinite(last) && last > 0) out.riskPct = out.risk / last * 100;
+    var riskUSD = num($('fRisk').value);
+    if (isFinite(riskUSD) && riskUSD > 0 && out.risk > 0) out.units = riskUSD / out.risk;
+    return out;
+  }
+
+  /* ---------- ticket rendering ---------- */
+  function el(tag, cls, text) { var n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; }
+  function listSec(title, items, host) {
+    if (!items || !items.length) return;
+    var sec = el('div', 'note-sec'); sec.appendChild(el('h3', null, title));
+    var ul = el('ul');
+    items.forEach(function (i) { if (i != null && String(i).trim()) ul.appendChild(el('li', null, String(i))); });
+    if (!ul.childNodes.length) return;
+    sec.appendChild(ul); host.appendChild(sec);
+  }
+
+  function renderTicket(t, opts) {
+    opts = opts || {};
+    var host = $('ticket'); host.textContent = '';
+    var tick = num(t.chart && t.chart.tick);
+    var v = verify(t);
+    var bias = (t.bias === 'long' || t.bias === 'short') ? t.bias : 'no-trade';
+    var cls = bias === 'long' ? 'long' : bias === 'short' ? 'short' : 'wait';
+
+    var band = el('div', 'band ' + cls);
+    band.appendChild(el('div', 'bias', bias === 'no-trade' ? 'NO TRADE' : bias.toUpperCase()));
+    var meta = el('div', 'meta');
+    meta.appendChild(el('div', 'setup', t.setup || (bias === 'no-trade' ? 'Nothing worth the risk here' : 'Setup')));
+    var ch = t.chart || {};
+    var line = [ch.instrument, ch.timeframe, isFinite(num(ch.last_price)) ? 'last ' + fmt(num(ch.last_price), tick) : null]
+      .filter(Boolean).join('  ·  ');
+    meta.appendChild(el('div', 'instr', line || 'instrument not named on the chart'));
+    band.appendChild(meta);
+    if (opts.example) band.appendChild(el('span', 'example-tag', 'Example read'));
+    else if (isFinite(num(t.conviction))) {
+      var cv = el('div', 'conv');
+      cv.appendChild(el('div', 'n', Math.round(num(t.conviction)) + ''));
+      cv.appendChild(el('div', 'l', 'conviction'));
+      band.appendChild(cv);
+    }
+    host.appendChild(band);
+
+    if (t.readable === false) {
+      var e = el('div', 'err');
+      e.appendChild(el('b', null, 'It could not read the chart. '));
+      e.appendChild(document.createTextNode((t.unreadable || ['The price axis was not legible.']).join(' ')));
+      host.appendChild(e);
+    }
+
+    if (bias !== 'no-trade') {
+      var levels = el('div', 'levels');
+      var entry = t.entry || {}, stop = t.stop || {};
+      var c1 = el('div', 'lvl entry');
+      c1.appendChild(el('div', 'k', 'Entry' + (entry.type ? ' · ' + entry.type : '')));
+      c1.appendChild(el('div', 'v', fmt(num(entry.price), tick)));
+      if (entry.trigger) c1.appendChild(el('div', 's', entry.trigger));
+      levels.appendChild(c1);
+
+      var c2 = el('div', 'lvl stop');
+      c2.appendChild(el('div', 'k', 'Stop'));
+      c2.appendChild(el('div', 'v', fmt(num(stop.price), tick)));
+      if (stop.why) c2.appendChild(el('div', 's', stop.why));
+      levels.appendChild(c2);
+
+      (t.targets || []).slice(0, 3).forEach(function (tg) {
+        var c = el('div', 'lvl tp');
+        c.appendChild(el('div', 'k', tg.label || 'Target'));
+        c.appendChild(el('div', 'v', fmt(num(tg.price), tick)));
+        if (tg.why) c.appendChild(el('div', 's', tg.why));
+        levels.appendChild(c);
+      });
+      host.appendChild(levels);
+
+      var math = el('div', 'math');
+      function chip(label, value, kind) {
+        var c = el('span', 'chip' + (kind ? ' ' + kind : ''));
+        c.appendChild(document.createTextNode(label + ' '));
+        c.appendChild(el('b', null, value));
+        math.appendChild(c);
+      }
+      if (isFinite(v.rr)) chip('R:R', v.rr.toFixed(2) + ' : 1', v.rr < 1.5 ? 'warn' : null);
+      if (isFinite(v.risk)) chip('Risk', fmt(v.risk, tick) + (isFinite(v.riskPct) ? '  (' + v.riskPct.toFixed(2) + '%)' : ''));
+      if (isFinite(v.reward)) chip('To TP1', fmt(v.reward, tick));
+      if (isFinite(v.units)) chip('Size for ' + money(num($('fRisk').value)), v.units >= 10 ? Math.floor(v.units).toLocaleString('en-US') : v.units.toFixed(2));
+      if (isFinite(num(t.chart && t.chart.avg_candle_range))) chip('Avg candle', fmt(num(t.chart.avg_candle_range), tick));
+      if (v.rr < 1.5 && isFinite(v.rr)) chip('Thin edge', 'under 1.5R', 'warn');
+      host.appendChild(math);
+
+      if (v.issues.length) {
+        var box = el('div', 'err');
+        box.appendChild(el('b', null, 'Check this before you trade it. '));
+        box.appendChild(document.createTextNode(v.issues.join(' ')));
+        host.appendChild(box);
+      }
+    }
+
+    var notes = el('div', 'notes');
+    if (t.invalidation) listSec(bias === 'no-trade' ? 'Waiting for' : 'Invalidated if', [t.invalidation], notes);
+    listSec('Structure', t.structure, notes);
+    listSec('Momentum', t.momentum, notes);
+    if (t.key_levels && t.key_levels.length) {
+      var sec = el('div', 'note-sec'); sec.appendChild(el('h3', null, 'Levels on the chart'));
+      var row = el('div', 'keylvl');
+      t.key_levels.slice(0, 10).forEach(function (k) {
+        var s = el('span');
+        s.appendChild(el('b', null, fmt(num(k.price), tick)));
+        s.appendChild(document.createTextNode('  ' + [k.kind, k.note].filter(Boolean).join(' · ')));
+        row.appendChild(s);
+      });
+      sec.appendChild(row); notes.appendChild(sec);
+    }
+    listSec('What kills it', t.risks, notes);
+    listSec('Would raise conviction', t.raise_conviction, notes);
+    if (t.readable !== false) listSec('Could not make out', t.unreadable, notes);
+    host.appendChild(notes);
+
+    if (!opts.example) {
+      var bar = el('div', 'math');
+      var copy = el('button', 'ghost', 'Copy ticket');
+      copy.type = 'button'; copy.style.padding = '8px 14px'; copy.style.fontSize = '12.5px';
+      copy.addEventListener('click', function () {
+        var txt = ticketText(t, v, tick);
+        var done = function () { copy.textContent = 'Copied'; setTimeout(function () { copy.textContent = 'Copy ticket'; }, 1600); };
+        if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(txt).then(done, function () {});
+      });
+      bar.appendChild(copy);
+      host.appendChild(bar);
+    }
+  }
+
+  function ticketText(t, v, tick) {
+    var ch = t.chart || {}, e = t.entry || {}, s = t.stop || {};
+    var lines = [
+      (t.bias === 'no-trade' ? 'NO TRADE' : String(t.bias || '').toUpperCase()) + ' — ' + (ch.instrument || 'chart') + ' ' + (ch.timeframe || ''),
+      t.setup || ''
+    ];
+    if (t.bias === 'long' || t.bias === 'short') {
+      lines.push('Entry ' + fmt(num(e.price), tick) + (e.type ? ' (' + e.type + ')' : ''));
+      lines.push('Stop  ' + fmt(num(s.price), tick));
+      (t.targets || []).forEach(function (g) { lines.push((g.label || 'TP') + '   ' + fmt(num(g.price), tick)); });
+      if (isFinite(v.rr)) lines.push('R:R   ' + v.rr.toFixed(2) + ' : 1');
+      if (isFinite(v.units)) lines.push('Size  ' + (v.units >= 10 ? Math.floor(v.units) : v.units.toFixed(2)) + ' units');
+    }
+    if (t.invalidation) lines.push('Invalid if: ' + t.invalidation);
+    return lines.filter(Boolean).join('\n');
+  }
+
+  /* ---------- history (per browser, text only) ---------- */
+  function readHist() {
+    try { var r = JSON.parse(localStorage.getItem(HIST_KEY) || '[]'); return Array.isArray(r) ? r : []; }
+    catch (e) { return []; }
+  }
+  function writeHist(rows) { try { localStorage.setItem(HIST_KEY, JSON.stringify(rows.slice(0, 8))); } catch (e) {} }
+  function pushHist(t) {
+    var rows = readHist();
+    rows.unshift({ at: Date.now(), bias: t.bias, sym: (t.chart && t.chart.instrument) || 'chart', ticket: t });
+    writeHist(rows); renderHist();
+  }
+  function ago(ms) {
+    var m = Math.round((Date.now() - ms) / 60000);
+    if (m < 1) return 'just now';
+    if (m < 60) return m + 'm ago';
+    var h = Math.round(m / 60); if (h < 24) return h + 'h ago';
+    return Math.round(h / 24) + 'd ago';
+  }
+  function renderHist() {
+    var rows = readHist(), host = $('hist'); host.textContent = '';
+    $('clearHist').hidden = !rows.length;
+    if (!rows.length) { host.appendChild(el('div', 'empty', 'Reads you run are kept here, in this browser only.')); return; }
+    rows.forEach(function (r) {
+      var b = el('button'); b.type = 'button';
+      var dot = el('span', 'dot');
+      dot.style.background = r.bias === 'long' ? 'var(--long)' : r.bias === 'short' ? 'var(--short)' : 'var(--wait)';
+      b.appendChild(dot);
+      b.appendChild(el('span', 'sym', r.sym || 'chart'));
+      b.appendChild(el('span', null, r.bias === 'no-trade' ? 'no trade' : String(r.bias || '')));
+      b.appendChild(el('span', 'when', ago(r.at)));
+      b.addEventListener('click', function () { renderTicket(r.ticket, {}); });
+      host.appendChild(b);
+    });
+  }
+  $('clearHist').addEventListener('click', function () { writeHist([]); renderHist(); });
+
+  /* ---------- run ---------- */
+  function working(msg) {
+    var host = $('ticket'); host.textContent = '';
+    var w = el('div', 'working');
+    w.appendChild(el('span', 'spin'));
+    var t = el('span', null, msg); t.id = 'workMsg'; w.appendChild(t);
+    host.appendChild(w);
+    var pre = el('pre', 'stream'); pre.id = 'stream'; pre.hidden = true; host.appendChild(pre);
+  }
+
+  $('run').addEventListener('click', async function () {
+    if (busy || !shots.length) return;
+    if (!apiKey) {
+      var h = $('ticket'); h.textContent = '';
+      var b = el('div', 'err');
+      b.appendChild(el('b', null, 'No API key saved. '));
+      b.appendChild(document.createTextNode('Paste an Anthropic key in the panel above and press Save key. It stays in this browser.'));
+      h.appendChild(b);
+      $('fKey').focus();
+      return;
+    }
+    busy = true; syncRun(); $('stop').hidden = false;
+    var started = Date.now();
+    working('Reading the chart…');
+    var timer = setInterval(function () {
+      var m = $('workMsg'); if (m) m.textContent = 'Reading the chart… ' + Math.round((Date.now() - started) / 1000) + 's';
+    }, 1000);
+    ctl = new AbortController();
+    var ctx = {
+      tf: '1-minute',
+      instrument: $('fInstrument').value.trim(),
+      risk: (function () { var r = num($('fRisk').value); return isFinite(r) && r > 0 ? money(r) : ''; })(),
+      note: $('fNote').value.trim()
+    };
+    try {
+      var t = await readChart(buildPrompt(ctx), shots.map(function (s) { return s.file; }), ctl.signal);
+      clearInterval(timer);
+      renderTicket(t, {});
+      pushHist(t);
+    } catch (e) {
+      clearInterval(timer);
+      var host = $('ticket'); host.textContent = '';
+      if (e && e.name === 'AbortError') { renderIdle(); }
+      else {
+        var box = el('div', 'err');
+        box.appendChild(el('b', null, 'Could not finish the read. '));
+        box.appendChild(document.createTextNode((e && e.message) || 'Something went wrong.'));
+        host.appendChild(box);
+      }
+    } finally {
+      busy = false; ctl = null; $('stop').hidden = true; syncRun();
+    }
+  });
+  $('stop').addEventListener('click', function () { if (ctl) ctl.abort(); });
+
+  /* ---------- the prompt, for use by hand ---------- */
+  function currentPrompt() {
+    return buildPrompt({
+      tf: '1-minute',
+      instrument: $('fInstrument').value.trim(),
+      risk: (function () { var r = num($('fRisk').value); return isFinite(r) && r > 0 ? money(r) : ''; })(),
+      note: $('fNote').value.trim()
+    });
+  }
+  $('copyPrompt').addEventListener('click', function () {
+    var b = $('copyPrompt');
+    var done = function () { b.textContent = 'Copied'; setTimeout(function () { b.textContent = 'Copy prompt'; }, 1800); };
+    if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(currentPrompt()).then(done, function () {});
+  });
+
+  /* ---------- the page at rest ---------- */
+  var EXAMPLE = {
+    readable: true,
+    chart: { instrument: 'ES (example)', timeframe: '1-minute', last_price: 5738.25, tick: 0.25, avg_candle_range: 1.75, candles_seen: 60, session_note: 'Mid-morning, post-open balance' },
+    bias: 'long', setup: 'Retest of the broken range high', conviction: 62,
+    entry: { type: 'limit', price: 5737.50, trigger: 'First pullback into the broken high, no full-body close below it' },
+    stop: { price: 5734.25, why: 'Below the retest low plus a 0.5x average-candle buffer' },
+    targets: [{ label: 'TP1', price: 5743.00, why: 'Equal highs from the prior session — resting liquidity' },
+              { label: 'TP2', price: 5747.25, why: 'Measured move of the range height' }],
+    model_rr: 1.69, invalidation: 'A one-minute close back inside the range kills it — the break was a fakeout.',
+    structure: ['Higher highs and higher lows since the open low.', 'Range high at 5737 broke on an expansion candle with follow-through.'],
+    momentum: ['Last three candles have small bodies and upper wicks — buyers pausing, not leaving.'],
+    key_levels: [{ price: 5737.00, kind: 'support', note: 'broken range high, now the line in the sand' },
+                 { price: 5743.00, kind: 'liquidity', note: 'equal highs' }],
+    risks: ['A fast reclaim of the range traps every breakout buyer, this one included.'],
+    raise_conviction: ['Volume expanding on the break rather than fading into it.'],
+    unreadable: []
+  };
+  function renderIdle() { renderTicket(EXAMPLE, { example: true }); }
+
+  loadKey();
+  renderIdle();
+  renderHist();
+  renderShots();
+})();
+</script>
+</body>
+</html>
