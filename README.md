@@ -12,4 +12,14 @@ The risk:reward, stop distance and position size shown on the ticket are recompu
 by the page from the levels themselves — where the model's own arithmetic disagrees
 with its levels, the page says so and the levels win.
 
+## In Claude Code (no API key, no credit)
+
+`claude-skill/` is the same read as a Claude Code skill, installed by symlink at
+`~/.claude/skills/scalp-read`. Drop a screenshot into a session and run `/scalp-read`:
+it runs on your Claude subscription instead of API credit.
+
+`claude-skill/verify.mjs` does the arithmetic and prints the ticket, so the numbers
+are computed rather than recalled. It mirrors `verify()` in `index.html` — change the
+maths in one, change it in the other.
+
 Not advice. One model's opinion of one screenshot.
