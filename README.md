@@ -51,6 +51,36 @@ ETH was -0.21R. SOL was +0.11R, which is noise, not an edge. At Coinbase's entry
 it is down 21% in three days. Do not trade this rule. It is a structure reader, not a
 strategy — treat the numbers it prints as levels to think about, not signals to take.
 
+## The grid search — `grid.mjs`
+
+```
+node grid.mjs --days 30  --test 7  --granularity 60    # 1-minute
+node grid.mjs --days 150 --test 40 --granularity 900   # 15-minute
+node grid.mjs --days 365 --test 90 --granularity 3600  # hourly
+```
+
+~900 variants of the rule (pivot window x trend filter x entry style x target x stop buffer
+x time stop), fitted on the older part of the window and re-run on a held-out newer part.
+Everything is measured in R, and **fees are charged in R too**, which is the finding that
+matters:
+
+> cost in R = fee x price / stop distance
+
+A 0.05% fee on BTC at $84,000 with a 50-point stop is 0.84R *per side*. The stop distance
+is the only lever on that ratio, and it is set by the timeframe.
+
+**Results (2026-09-24, BTC + ETH, perp fees 0.02/0.05%):**
+
+| bars | variants +ve in training | cost in R | held out |
+|---|---|---|---|
+| 1m  | **0 of 918** | 0.23-0.72 | — nothing to test |
+| 15m | 46 of 912 (≈ the 5% you get from noise) | 0.12-0.35 | all meaningful-sized variants negative |
+| 1h  | 486 of 862 | 0.02-0.14 | BTC +0.30R/trade, ETH **-0.20R/trade**, over a window where holding returned 40% and 72% |
+
+No avenue here. The 1h "edge" is a long bias in a rising market that does not survive being
+asked to work on a second asset, and it underperformed doing nothing. **This repo is a
+structure reader and a measuring instrument, not a strategy.**
+
 ## In Claude Code (no API key, no credit)
 
 `claude-skill/` is the same read as a Claude Code skill, installed by symlink at
