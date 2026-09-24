@@ -5,9 +5,9 @@ description: Read a 1-minute chart screenshot and return a scalp trade ticket �
 
 # Scalp read — screenshot in, levels out, fast
 
-**Speed is the product.** A 1-minute setup is stale in two minutes. The only acceptable
-output is the levels; everything else is what made you slow. Work like a desk trader
-calling a level across the room, not an analyst writing it up.
+**Speed is the product.** A 1-minute setup is stale in two minutes. The output is four
+things — long or short, entry, stop, targets — and nothing else. No preamble, no reasoning,
+no commentary after. Work like a desk trader calling a level across the room.
 
 The user has dropped chart screenshots. Image 1 is the primary chart (1-minute unless
 stated); any others are higher-timeframe context on the same instrument.
@@ -29,36 +29,42 @@ Do all of this silently, then emit only the ticket:
    Entry sits at a *location* (a level), not wherever price happens to be printing.
 5. **Arithmetic** — for a long, stop < entry < TP1; for a short, stop > entry > TP1.
 
-## Emit — one Bash call, nothing before it
+## Emit — one Bash call, nothing before it, nothing after it
 
-No preamble, no "let me analyse", no restating the chart. The first thing you do after
-looking at the image is run this:
+The first thing you do after looking at the image is run this. No "let me analyse", no
+restating the chart, no summary underneath.
 
 ```bash
-node ~/.claude/skills/scalp-read/verify.mjs --bias short --entry 83992 --stop 84030 \
-  --tp 83915,83800 --last 83969.83 --tick 0.01 --sym "BTCUSD 1m" \
-  --why "retest of broken 84,000, LH downtrend" --invalid "1m close above 84,050"
+node ~/.claude/skills/scalp-read/verify.mjs --bias short --entry 83992 --stop 84030 --tp 83915,83800 --tick 0.01
 ```
 
-It recomputes risk, reward, R:R and size from the levels and prints the ticket, so no
-number reaching the user is one you did in your head. Add `--risk 200` (or they can set
-`SCALP_RISK_USD`) and it sizes the position. `--conv 58` adds a conviction number.
+Prints:
 
-Flags: `--bias long|short|no-trade` `--entry` `--stop` `--tp a,b,c` `--last` `--tick`
-`--atr` `--sym` `--why` `--trigger` `--invalid` `--conv` `--risk` `--type limit|stop|market`.
+```
+SHORT
+Entry 83,992.00   Stop 84,030.00   TP1 83,915.00   TP2 83,800.00
+```
 
-**The script's output is the answer.** After it, add at most one short line, and only if it
-carries something the ticket cannot — the location of the entry versus the last print, or
-what changes the trade. Usually add nothing.
+It recomputes risk, reward and R:R from the levels, so a stop on the wrong side or an R:R
+under 1.5 prints as a ⚠ line — the only thing that ever appears beyond the four. Add
+`--risk 200` (or `SCALP_RISK_USD`) and it adds a size line.
 
-If the checker flags a contradiction (stop on the wrong side, R:R that disagrees with the
-levels), that is a real error in your read: fix the levels and re-run, never explain it away.
+Flags: `--bias long|short|no-trade` `--entry` `--stop` `--tp a,b,c` `--tick` `--risk`
+`--sym` `--last` `--atr` `--why` `--trigger` `--invalid` `--conv` `--type limit|stop|market`.
+The last six are only rendered by `--terse` and `--full`; passing them on the live path
+costs time for nothing.
+
+`--terse` adds R:R, the setup line and the invalidation. `--full` is the whole write-up.
+Use neither unless the user asks.
+
+**The script's output is the entire answer. Write nothing after it.** If the checker flags
+a contradiction, that is a real error in your read: fix the levels and re-run.
 
 ## Full write-up — only when asked
 
 When the user asks for the reasoning, a post-mortem, or "the full read", write the JSON
 below to the scratchpad and run `node ~/.claude/skills/scalp-read/verify.mjs read.json --full`.
-Never do this on a live chart.
+Never do this on a live chart — it is the slow path by design.
 
 ```json
 {"readable": true, "unreadable": [],

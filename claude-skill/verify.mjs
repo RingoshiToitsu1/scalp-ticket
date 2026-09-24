@@ -6,7 +6,7 @@
 // position size are all recomputed here from the entry, stop and targets, and a stop on the wrong
 // side of the entry — or a model_rr that disagrees with its own levels — is called out.
 //
-// FAST PATH (default on a live chart) — flags, one line, no file to write:
+// FAST PATH (default on a live chart) — flags in, direction and three numbers out:
 //   node verify.mjs --bias short --entry 83992 --stop 84030 --tp 83915,83800 \
 //     --last 83969.83 --tick 0.01 --atr 25 --sym "BTCUSD 1m" --why "..." --invalid "..."
 //
@@ -54,6 +54,32 @@ function fromFlags(a) {
     invalidation: a.invalid || ''
   };
   return t;
+}
+
+// Bare: direction and the three numbers. The default, because that is the whole ask on a
+// live chart. A contradiction still prints — shipping a wrong-sided stop silently is worse
+// than one extra line.
+function renderBare(t, riskUSD) {
+  const v = verify(t, riskUSD);
+  const tick = n(t?.chart?.tick);
+  const bias = ['long', 'short'].includes(t.bias) ? t.bias : 'no-trade';
+  const tone = bias === 'long' ? C.green : bias === 'short' ? C.red : C.amber;
+  const L = [''];
+  if (bias === 'no-trade') {
+    L.push(`${tone}${C.b}NO TRADE${C.r}${t.setup ? C.dim + ' · ' + t.setup + C.r : ''}`);
+    L.push('');
+    return L.join('\n');
+  }
+  L.push(`${tone}${C.b}${bias.toUpperCase()}${C.r}${t?.chart?.instrument ? C.dim + '  ' + t.chart.instrument + C.r : ''}`);
+  const cells = [`${C.b}Entry${C.r} ${fmt(n(t.entry?.price), tick)}`,
+                 `${C.red}Stop${C.r} ${fmt(n(t.stop?.price), tick)}`];
+  for (const g of (t.targets || [])) cells.push(`${C.green}${g.label}${C.r} ${fmt(n(g.price), tick)}`);
+  L.push(cells.join(C.dim + '   ' + C.r));
+  if (Number.isFinite(v.units)) L.push(`${C.dim}size ${v.units >= 10 ? Math.floor(v.units) : v.units.toFixed(2)} for $${riskUSD}${C.r}`);
+  for (const i of v.issues) L.push(`${C.red}⚠ ${i}${C.r}`);
+  if (Number.isFinite(v.rr) && v.rr < 1.5) L.push(`${C.amber}⚠ ${v.rr.toFixed(2)}R — under 1.5${C.r}`);
+  L.push('');
+  return L.join('\n');
 }
 
 function renderTerse(t, riskUSD) {
@@ -222,12 +248,13 @@ function render(t) {
 try {
   const { a, rest } = parseArgs(process.argv.slice(2));
   const riskUSD = n(a.risk ?? process.env.SCALP_RISK_USD);
+  const shape = (t, r) => a.full ? render(t) : a.terse ? renderTerse(t, r) : renderBare(t, r);
   if (a.bias || a.entry) {
-    // live path: flags in, five lines out
-    console.log(renderTerse(fromFlags(a), riskUSD));
+    // live path: flags in, direction and three numbers out
+    console.log(shape(fromFlags(a), riskUSD));
   } else {
     const t = parseTolerant(rest[0] && rest[0] !== '-' ? readFileSync(rest[0], 'utf8') : readFileSync(0, 'utf8'));
-    console.log(a.full ? render(t) : renderTerse(t, Number.isFinite(riskUSD) ? riskUSD : n(t.risk_per_trade_usd)));
+    console.log(shape(t, Number.isFinite(riskUSD) ? riskUSD : n(t.risk_per_trade_usd)));
   }
 } catch (e) {
   console.error(`verify.mjs: ${e.message}`);
