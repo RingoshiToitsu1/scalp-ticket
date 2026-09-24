@@ -31,6 +31,26 @@ minutes and refused the rest — refusing chop is the feature.
 
 Installed at `~/bin/scalp`.
 
+## Does it work? — `backtest.mjs`
+
+```
+node backtest.mjs btc --days 3 --budget 1000
+node backtest.mjs btc --days 3 --budget 1000 --maker 0.02 --taker 0.05 --trades
+```
+
+Walks Coinbase's own 1-minute history through the same `lib/decide.mjs` the live command
+uses, fills limit orders against the candles that followed, and prices the result at a
+real fee tier. Where it has to guess it guesses against you: a candle touching both stop
+and target counts as a stop, the stop exits at market and pays taker plus slippage, and
+resolution starts on the candle after the fill.
+
+**Result as of 2026-09-24 — the rule loses before costs.** Over 3 days of BTC it took 286
+trades, reached the target on 21% of them, and averaged **-0.30R a trade** (-85R total).
+ETH was -0.21R. SOL was +0.11R, which is noise, not an edge. At Coinbase's entry fee tier
+(0.60/1.20%) a \$1,000 spot account is wiped out by fees alone; even at futures-style fees
+it is down 21% in three days. Do not trade this rule. It is a structure reader, not a
+strategy — treat the numbers it prints as levels to think about, not signals to take.
+
 ## In Claude Code (no API key, no credit)
 
 `claude-skill/` is the same read as a Claude Code skill, installed by symlink at
