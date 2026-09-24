@@ -6,8 +6,13 @@
 // position size are all recomputed here from the entry, stop and targets, and a stop on the wrong
 // side of the entry — or a model_rr that disagrees with its own levels — is called out.
 //
-//   NODE_OPTIONS="" node verify.mjs read.json
-//   cat read.json | NODE_OPTIONS="" node verify.mjs
+// FAST PATH (default on a live chart) — flags, one line, no file to write:
+//   node verify.mjs --bias short --entry 83992 --stop 84030 --tp 83915,83800 \
+//     --last 83969.83 --tick 0.01 --atr 25 --sym "BTCUSD 1m" --why "..." --invalid "..."
+//
+// FULL PATH — the whole read as JSON, for a post-mortem rather than a live signal:
+//   NODE_OPTIONS="" node verify.mjs read.json --full
+//   cat read.json | NODE_OPTIONS="" node verify.mjs --full
 //
 // Mirrors verify() in index.html. Keep the two in step.
 
@@ -18,6 +23,67 @@ const C = {
   green: '[38;5;42m', red: '[38;5;203m', amber: '[38;5;214m',
   steel: '[38;5;75m', grey: '[38;5;245m'
 };
+
+function parseArgs(argv) {
+  const a = {}; const rest = [];
+  for (let i = 0; i < argv.length; i++) {
+    const t = argv[i];
+    if (t.startsWith('--')) {
+      const k = t.slice(2);
+      const v = (argv[i + 1] && !argv[i + 1].startsWith('--')) ? argv[++i] : 'true';
+      a[k] = v;
+    } else rest.push(t);
+  }
+  return { a, rest };
+}
+
+// Build the ticket from flags — the live path. Only what a trade needs: no narrative,
+// because narrative is what makes a signal arrive after the move.
+function fromFlags(a) {
+  const tps = String(a.tp || '').split(',').map(x => x.trim()).filter(Boolean);
+  const t = {
+    readable: true,
+    chart: { instrument: a.sym || '', timeframe: '', last_price: n(a.last), tick: n(a.tick), avg_candle_range: n(a.atr) },
+    bias: (a.bias || 'no-trade').toLowerCase(),
+    setup: a.why || '',
+    conviction: n(a.conv),
+    entry: { type: a.type || 'limit', price: n(a.entry), trigger: a.trigger || '' },
+    stop: { price: n(a.stop), why: a.stopwhy || '' },
+    targets: tps.map((p, i) => ({ label: 'TP' + (i + 1), price: n(p), why: '' })),
+    model_rr: n(a.rr),
+    invalidation: a.invalid || ''
+  };
+  return t;
+}
+
+function renderTerse(t, riskUSD) {
+  const v = verify(t, riskUSD);
+  const tick = n(t?.chart?.tick);
+  const bias = ['long', 'short'].includes(t.bias) ? t.bias : 'no-trade';
+  const tone = bias === 'long' ? C.green : bias === 'short' ? C.red : C.amber;
+  const head = bias === 'no-trade' ? 'NO TRADE' : bias.toUpperCase();
+  const who = t?.chart?.instrument || '';
+  const L = [''];
+  L.push(`${tone}${C.b}━━ ${head}${C.r}${tone} · ${who}${C.r} ${C.dim}${'━'.repeat(Math.max(4, 40 - head.length - who.length))}${C.r}`);
+  if (bias !== 'no-trade') {
+    const cells = [`${C.b}Entry${C.r} ${fmt(n(t.entry?.price), tick)}`,
+                   `${C.red}Stop${C.r} ${fmt(n(t.stop?.price), tick)}`];
+    for (const g of (t.targets || [])) cells.push(`${C.green}${g.label}${C.r} ${fmt(n(g.price), tick)}`);
+    L.push('  ' + cells.join(C.dim + '   ' + C.r));
+    const bits = [];
+    if (Number.isFinite(v.rr)) bits.push(`${v.rr < 1.5 ? C.amber : C.steel}R:R ${v.rr.toFixed(2)}:1${C.r}`);
+    if (Number.isFinite(v.risk)) bits.push(`risk ${fmt(v.risk, tick)}`);
+    if (Number.isFinite(v.units)) bits.push(`size ${v.units >= 10 ? Math.floor(v.units) : v.units.toFixed(2)} for $${riskUSD}`);
+    L.push('  ' + bits.join(C.dim + ' · ' + C.r));
+  }
+  const tail = [t.setup, t.entry?.trigger, t.invalidation ? 'invalid: ' + t.invalidation : ''].filter(Boolean);
+  if (tail.length) L.push(`  ${C.dim}${tail.join(' · ')}${C.r}`);
+  if (v.issues.length) for (const i of v.issues) L.push(`  ${C.red}⚠ ${i}${C.r}`);
+  else if (bias !== 'no-trade') L.push(`  ${C.dim}✓ checks out${C.r}`);
+  if (Number.isFinite(v.rr) && v.rr < 1.5) L.push(`  ${C.amber}⚠ under 1.5R${C.r}`);
+  L.push('');
+  return L.join('\n');
+}
 
 function readInput() {
   const arg = process.argv[2];
@@ -154,7 +220,15 @@ function render(t) {
 }
 
 try {
-  console.log(render(parseTolerant(readInput())));
+  const { a, rest } = parseArgs(process.argv.slice(2));
+  const riskUSD = n(a.risk ?? process.env.SCALP_RISK_USD);
+  if (a.bias || a.entry) {
+    // live path: flags in, five lines out
+    console.log(renderTerse(fromFlags(a), riskUSD));
+  } else {
+    const t = parseTolerant(rest[0] && rest[0] !== '-' ? readFileSync(rest[0], 'utf8') : readFileSync(0, 'utf8'));
+    console.log(a.full ? render(t) : renderTerse(t, Number.isFinite(riskUSD) ? riskUSD : n(t.risk_per_trade_usd)));
+  }
 } catch (e) {
   console.error(`verify.mjs: ${e.message}`);
   process.exit(1);
