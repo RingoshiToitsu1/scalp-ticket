@@ -59,7 +59,7 @@ function fromFlags(a) {
 // Bare: direction and the three numbers. The default, because that is the whole ask on a
 // live chart. A contradiction still prints — shipping a wrong-sided stop silently is worse
 // than one extra line.
-function renderBare(t, riskUSD) {
+export function renderBare(t, riskUSD) {
   const v = verify(t, riskUSD);
   const tick = n(t?.chart?.tick);
   const bias = ['long', 'short'].includes(t.bias) ? t.bias : 'no-trade';
@@ -82,7 +82,7 @@ function renderBare(t, riskUSD) {
   return L.join('\n');
 }
 
-function renderTerse(t, riskUSD) {
+export function renderTerse(t, riskUSD) {
   const v = verify(t, riskUSD);
   const tick = n(t?.chart?.tick);
   const bias = ['long', 'short'].includes(t.bias) ? t.bias : 'no-trade';
@@ -128,10 +128,11 @@ function parseTolerant(text) {
   throw new Error('no JSON object found in the input');
 }
 
-const n = v => {
+export const num = v => {
   const x = typeof v === 'number' ? v : parseFloat(String(v ?? '').replace(/[^0-9.\-]/g, ''));
   return Number.isFinite(x) ? x : NaN;
 };
+const n = num;
 function decimalsFor(tick, price) {
   if (tick > 0) {
     const s = String(tick);
@@ -245,7 +246,8 @@ function render(t) {
   return L.join('\n');
 }
 
-try {
+const isMain = process.argv[1] && import.meta.url === new URL(`file://${process.argv[1]}`).href;
+if (isMain) try {
   const { a, rest } = parseArgs(process.argv.slice(2));
   const riskUSD = n(a.risk ?? process.env.SCALP_RISK_USD);
   const shape = (t, r) => a.full ? render(t) : a.terse ? renderTerse(t, r) : renderBare(t, r);

@@ -12,6 +12,25 @@ The risk:reward, stop distance and position size shown on the ticket are recompu
 by the page from the levels themselves — where the model's own arithmetic disagrees
 with its levels, the page says so and the levels win.
 
+## From the tape — `scalp`, no screenshot, no model
+
+`scalp.mjs` runs the same procedure on Coinbase's public 1-minute candles and prints in
+about 200 ms, because nothing in it thinks:
+
+```
+scalp btc              # BTC-USD
+scalp eth --risk 200   # size against $200 of risk
+scalp sol --terse      # add R:R, the setup line
+```
+
+Structure comes from fractal pivots (a candle that is the extreme of the two either side),
+volatility from a 20-period ATR, and the trade only exists when the last two swing highs
+*and* the last two swing lows agree on a direction, a level sits within 4x ATR of price,
+and the first target is at least 1.5R away. On ~4 hours of BTC it fired on a third of the
+minutes and refused the rest — refusing chop is the feature.
+
+Installed at `~/bin/scalp`.
+
 ## In Claude Code (no API key, no credit)
 
 `claude-skill/` is the same read as a Claude Code skill, installed by symlink at
